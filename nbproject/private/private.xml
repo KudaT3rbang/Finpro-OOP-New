@@ -3,8 +3,14 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/LoginForm.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/CoursePlanner.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/LoginFormStudent.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/AuthService.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/UserSession.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/AdminSession.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/LoginFormAdmin.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/ReviewSection.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/AdminDashboard.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/AuthServiceAdmin.java</file>
         </group>
     </open-files>
 </project-private>

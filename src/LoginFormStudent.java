@@ -11,12 +11,12 @@ import javax.swing.JOptionPane;
  *
  * @author natha
  */
-public class LoginForm extends javax.swing.JFrame {
+public class LoginFormStudent extends javax.swing.JFrame {
 
     /**
      * Creates new form LoginForm
      */
-    public LoginForm() {
+    public LoginFormStudent() {
         initComponents();
     }
 
@@ -45,7 +45,7 @@ public class LoginForm extends javax.swing.JFrame {
         setPreferredSize(new java.awt.Dimension(800, 600));
         setResizable(false);
 
-        loginPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Login Form", javax.swing.border.TitledBorder.CENTER, javax.swing.border.TitledBorder.DEFAULT_POSITION));
+        loginPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Login Form Student", javax.swing.border.TitledBorder.CENTER, javax.swing.border.TitledBorder.DEFAULT_POSITION));
 
         labelNim.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         labelNim.setLabelFor(nimField);
@@ -167,7 +167,7 @@ public class LoginForm extends javax.swing.JFrame {
         String password = String.valueOf(passwordField.getPassword());
         
         if (nim.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "NIM dan password tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "NIM and Password cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         
@@ -181,7 +181,7 @@ public class LoginForm extends javax.swing.JFrame {
             dashboard.setVisible(true);
             this.dispose();
         } else {
-            JOptionPane.showMessageDialog(this, "NIM atau password salah!", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Wrong NIM or password!", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_loginButtonActionPerformed
 
@@ -202,20 +202,20 @@ public class LoginForm extends javax.swing.JFrame {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(LoginForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(LoginFormStudent.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(LoginForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(LoginFormStudent.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(LoginForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(LoginFormStudent.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(LoginForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(LoginFormStudent.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
-        IntelliJTheme.setup(LoginForm.class.getResourceAsStream("/Light.theme.json" ) );
+        IntelliJTheme.setup(LoginFormStudent.class.getResourceAsStream("/Light.theme.json" ));
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new LoginForm().setVisible(true);
+                new LoginFormStudent().setVisible(true);
             }
         });
     }

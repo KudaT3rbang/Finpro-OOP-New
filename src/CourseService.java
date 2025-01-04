@@ -63,116 +63,84 @@ public class CourseService {
         return courses;
     }
 
-    public void saveCourses(String studentNim, int semester, List<String> courseCodes) {
-        String ensureEnrollmentQuery = """
-            INSERT INTO enrollment (student_nim, semester)
-            SELECT ?, ?
-            WHERE NOT EXISTS (
-                SELECT 1 FROM enrollment WHERE student_nim = ? AND semester = ?
-            )
-        """;
-        String deleteQuery = """
-            DELETE FROM enrollment_course 
-            WHERE enrollment_id = (SELECT id FROM enrollment WHERE student_nim = ? AND semester = ?)
-        """;
-        String insertQuery = """
-            INSERT INTO enrollment_course (enrollment_id, code_course)
-            VALUES (
-                (SELECT id FROM enrollment WHERE student_nim = ? AND semester = ?),
-                ?
-            )
-        """;
-
-        try (Connection connection = DatabaseConnection.connect()) {
-            connection.setAutoCommit(false);
-
-            // Ensure enrollment exists
-            try (PreparedStatement stmt = connection.prepareStatement(ensureEnrollmentQuery)) {
-                stmt.setString(1, studentNim);
-                stmt.setInt(2, semester);
-                stmt.setString(3, studentNim);
-                stmt.setInt(4, semester);
-                stmt.executeUpdate();
+    public String getEnrollmentStatus(String studentNim, int semester) {
+        String query = "SELECT status FROM enrollment WHERE student_nim = ? AND semester = ?";
+        try (Connection connection = DatabaseConnection.connect(); PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, studentNim);
+            stmt.setInt(2, semester);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("status");
             }
-
-            // Delete existing courses
-            try (PreparedStatement stmt = connection.prepareStatement(deleteQuery)) {
-                stmt.setString(1, studentNim);
-                stmt.setInt(2, semester);
-                stmt.executeUpdate();
-            }
-
-            // Insert new courses
-            try (PreparedStatement stmt = connection.prepareStatement(insertQuery)) {
-                for (String courseCode : courseCodes) {
-                    stmt.setString(1, studentNim);
-                    stmt.setInt(2, semester);
-                    stmt.setString(3, courseCode);
-                    stmt.addBatch();
-                }
-                stmt.executeBatch();
-            }
-
-            connection.commit();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return null;
     }
 
-    public void saveCoursesWithStatus(String studentNim, int semester, List<String> courseCodes, String status) throws SQLException {
+    public void saveCoursesWithStatus(String studentNim, int semester, List<String> courseCodes, String status) {
         try (Connection connection = DatabaseConnection.connect()) {
-            // Ensure enrollment exists with the specified status
+            if (connection == null) {
+                throw new SQLException("Failed to establish database connection.");
+            }
+
+            connection.setAutoCommit(false); // Start transaction
+
+            // Ensure enrollment exists or update its status
             String ensureEnrollmentQuery = """
-                INSERT INTO enrollment (student_nim, semester, status)
-                SELECT ?, ?, ?
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM enrollment WHERE student_nim = ? AND semester = ?
-                )
-                ON DUPLICATE KEY UPDATE status = VALUES(status)
+            INSERT INTO enrollment (student_nim, semester, status)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE status = VALUES(status)
             """;
-            PreparedStatement ensureStmt = connection.prepareStatement(ensureEnrollmentQuery);
-            ensureStmt.setString(1, studentNim);
-            ensureStmt.setInt(2, semester);
-            ensureStmt.setString(3, status);
-            ensureStmt.setString(4, studentNim);
-            ensureStmt.setInt(5, semester);
-            ensureStmt.executeUpdate();
-
-            // Get enrollment ID
-            String getEnrollmentIdQuery = """
-                SELECT id FROM enrollment WHERE student_nim = ? AND semester = ?
-            """;
-            PreparedStatement enrollmentStmt = connection.prepareStatement(getEnrollmentIdQuery);
-            enrollmentStmt.setString(1, studentNim);
-            enrollmentStmt.setInt(2, semester);
-            ResultSet resultSet = enrollmentStmt.executeQuery();
-
-            int enrollmentId = 0;
-            if (resultSet.next()) {
-                enrollmentId = resultSet.getInt("id");
+            try (PreparedStatement ensureStmt = connection.prepareStatement(ensureEnrollmentQuery)) {
+                ensureStmt.setString(1, studentNim);
+                ensureStmt.setInt(2, semester);
+                ensureStmt.setString(3, status);
+                ensureStmt.executeUpdate();
             }
 
-            if (enrollmentId == 0) {
-                throw new SQLException("Failed to retrieve enrollment ID.");
+            // Retrieve enrollment ID
+            String getEnrollmentIdQuery = "SELECT id FROM enrollment WHERE student_nim = ? AND semester = ?";
+            int enrollmentId;
+            try (PreparedStatement enrollmentStmt = connection.prepareStatement(getEnrollmentIdQuery)) {
+                enrollmentStmt.setString(1, studentNim);
+                enrollmentStmt.setInt(2, semester);
+                ResultSet resultSet = enrollmentStmt.executeQuery();
+                if (resultSet.next()) {
+                    enrollmentId = resultSet.getInt("id");
+                } else {
+                    throw new SQLException("Failed to retrieve enrollment ID for student: " + studentNim + ", semester: " + semester);
+                }
             }
 
-            // Clear existing courses for this enrollment
-            String deleteQuery = """
-                DELETE FROM enrollment_course WHERE enrollment_id = ?
-            """;
-            PreparedStatement deleteStmt = connection.prepareStatement(deleteQuery);
-            deleteStmt.setInt(1, enrollmentId);
-            deleteStmt.executeUpdate();
+            // Delete existing courses for the enrollment
+            String deleteQuery = "DELETE FROM enrollment_course WHERE enrollment_id = ?";
+            try (PreparedStatement deleteStmt = connection.prepareStatement(deleteQuery)) {
+                deleteStmt.setInt(1, enrollmentId);
+                deleteStmt.executeUpdate();
+                System.out.println("Existing courses cleared for enrollment ID: " + enrollmentId);
+            }
 
             // Insert new courses
-            String insertQuery = """
-                INSERT INTO enrollment_course (enrollment_id, code_course) VALUES (?, ?)
-            """;
-            PreparedStatement insertStmt = connection.prepareStatement(insertQuery);
-            for (String codeCourse : courseCodes) {
-                insertStmt.setInt(1, enrollmentId);
-                insertStmt.setString(2, codeCourse);
-                insertStmt.executeUpdate();
+            String insertQuery = "INSERT INTO enrollment_course (enrollment_id, code_course) VALUES (?, ?)";
+            try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
+                for (String codeCourse : courseCodes) {
+                    insertStmt.setInt(1, enrollmentId);
+                    insertStmt.setString(2, codeCourse);
+                    insertStmt.addBatch(); // Batch operation
+                }
+                insertStmt.executeBatch();
+            }
+
+            connection.commit(); // Commit transaction
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try (Connection connection = DatabaseConnection.connect()) {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException rollbackEx) {
+                rollbackEx.printStackTrace();
             }
         }
     }

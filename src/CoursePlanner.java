@@ -22,7 +22,9 @@ public class CoursePlanner extends javax.swing.JFrame {
 
     public CoursePlanner() {
         initComponents();
-        loadTables(1);
+        SwingUtilities.invokeLater(() -> {
+            loadTables(1);
+        });
     }
 
     private String getStudentNimFromSession() {
@@ -35,17 +37,40 @@ public class CoursePlanner extends javax.swing.JFrame {
         if (studentNim == null) {
             JOptionPane.showMessageDialog(this, "Session expired. Please log in again.", "Error", JOptionPane.ERROR_MESSAGE);
             dispose();
-            new LoginForm().setVisible(true);
+            new LoginFormStudent().setVisible(true);
             return;
         }
 
         CourseService courseService = new CourseService();
+        String enrollmentStatus = courseService.getEnrollmentStatus(studentNim, semester);
+
         List<Object[]> availableCourses = courseService.getAvailableCourses(studentNim);
         List<Object[]> selectedCourses = courseService.getSelectedCourses(studentNim, semester);
 
         updateTable(jTable1, availableCourses);
         updateTable(jTable2, selectedCourses);
         calculateTotalCredits(selectedCourses);
+
+        if (null == enrollmentStatus) {
+            enableEditing();
+        } else {
+            switch (enrollmentStatus) {
+                case "Pending" -> {
+                    JOptionPane.showMessageDialog(this, "Your enrollment is pending. You cannot modify it at this time.");
+                    disableEditing();
+                }
+                case "Accepted" -> {
+                    JOptionPane.showMessageDialog(this, "Your enrollment has been accepted. You cannot modify it.");
+                    disableEditing();
+                }
+                case "Rejected" -> {
+                    JOptionPane.showMessageDialog(this, "Your enrollment was rejected. Please review and resubmit your enrollment.", "Rejected", JOptionPane.ERROR_MESSAGE);
+                    enableEditing();
+                }
+                default ->
+                    enableEditing();
+            }
+        }
     }
 
     private void updateTable(JTable table, List<Object[]> data) {
@@ -64,6 +89,18 @@ public class CoursePlanner extends javax.swing.JFrame {
         jLabel1.setText("Total Credits: " + totalCredits + " (Min : 16 ; Max : 24)");
     }
 
+    private void disableEditing() {
+        insertButton.setEnabled(false);
+        removeButton.setEnabled(false);
+        saveButton.setEnabled(false);
+    }
+
+    private void enableEditing() {
+        insertButton.setEnabled(true);
+        removeButton.setEnabled(true);
+        saveButton.setEnabled(true);
+    }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -73,6 +110,7 @@ public class CoursePlanner extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jOptionPane1 = new javax.swing.JOptionPane();
         semesterSelectorPanel = new javax.swing.JPanel();
         headerSemester = new javax.swing.JLabel();
         semesterComboBox = new javax.swing.JComboBox<>();
@@ -342,8 +380,19 @@ public class CoursePlanner extends javax.swing.JFrame {
         }
 
         CourseService courseService = new CourseService();
-        courseService.saveCourses(studentNim, semester, courseCodes);
-        JOptionPane.showMessageDialog(this, "Courses saved successfully!");
+
+        try {
+            // Save courses with "Pending" status
+            courseService.saveCoursesWithStatus(studentNim, semester, courseCodes, "Pending");
+            JOptionPane.showMessageDialog(this, "Courses saved successfully! Your enrollment is now pending review.");
+
+            // Disable editing
+            disableEditing();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "An error occurred while saving: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_saveButtonActionPerformed
 
     private List<Object[]> getTableData(JTable table) {
@@ -410,6 +459,7 @@ public class CoursePlanner extends javax.swing.JFrame {
     private javax.swing.JLabel headerSemester;
     private javax.swing.JButton insertButton;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JOptionPane jOptionPane1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
