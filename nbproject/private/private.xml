@@ -3,19 +3,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Services/EnrollmentService.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Views/AdminDashboard.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Services/AuthService.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Views/CoursePlanner.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Views/LoginFormAdmin.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Views/ReviewSection.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Views/LoginFormStudent.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Views/StudentDashboard.java</file>
             <file>file:/G:/JAVA%20FIIN/Finpro/src/Services/CourseService.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Services/DatabaseConnection.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Services/AuthServiceAdmin.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Models/AdminSession.java</file>
-            <file>file:/G:/JAVA%20FIIN/Finpro/src/Models/UserSession.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/Services/ReviewService.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/Views/CoursePlanner.java</file>
+            <file>file:/G:/JAVA%20FIIN/Finpro/src/Views/ReviewSection.java</file>
         </group>
     </open-files>
 </project-private>

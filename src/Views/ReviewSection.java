@@ -1,6 +1,6 @@
 package Views;
 
-import Services.EnrollmentService;
+import Services.ReviewService;
 import Models.AdminSession;
 import java.util.List;
 import javax.swing.JOptionPane;
@@ -25,7 +25,7 @@ public class ReviewSection extends javax.swing.JFrame {
     private void loadStudentData() {
         try {
             // Mendapatkan daftar mahasiswa dengan pendaftaran "Pending"
-            List<Object[]> studentList = EnrollmentService.getStudentsWithPendingEnrollments();
+            List<Object[]> studentList = ReviewService.getStudentsWithPendingEnrollments();
 
             // Memperbarui tabel mahasiswa
             DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
@@ -49,7 +49,7 @@ public class ReviewSection extends javax.swing.JFrame {
     private void loadEnrollmentDetails(String studentNim, int semester) {
         try {
             // Mendapatkan detail pendaftaran untuk mahasiswa yang dipilih
-            List<Object[]> details = EnrollmentService.getEnrollmentDetails(studentNim, semester);
+            List<Object[]> details = ReviewService.getEnrollmentDetails(studentNim, semester);
 
             // Memperbarui tabel detail pendaftaran
             DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
@@ -228,7 +228,7 @@ public class ReviewSection extends javax.swing.JFrame {
         String adminUsername = AdminSession.getInstance().getUsername(); // Mendapatkan username admin
 
         // Memperbarui status pendaftaran menjadi "Accepted"
-        EnrollmentService.updateEnrollmentStatus(studentNim, semester, "Accepted", adminUsername);
+        ReviewService.updateEnrollmentStatus(studentNim, semester, "Accepted", adminUsername);
         JOptionPane.showMessageDialog(this, "Enrollment accepted successfully!");
 
         loadStudentData(); // Memuat ulang data mahasiswa
@@ -254,7 +254,7 @@ public class ReviewSection extends javax.swing.JFrame {
         String adminUsername = AdminSession.getInstance().getUsername(); // Mendapatkan username admin
 
         // Memperbarui status pendaftaran menjadi "Rejected"
-        EnrollmentService.updateEnrollmentStatus(studentNim, semester, "Rejected", adminUsername);
+        ReviewService.updateEnrollmentStatus(studentNim, semester, "Rejected", adminUsername);
         JOptionPane.showMessageDialog(this, "Enrollment rejected successfully!");
 
         loadStudentData();

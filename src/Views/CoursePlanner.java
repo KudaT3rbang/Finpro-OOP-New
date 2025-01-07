@@ -65,6 +65,19 @@ public class CoursePlanner extends javax.swing.JFrame {
         // Membuat objek service untuk menangani operasi terkait mata kuliah
         CourseService courseService = new CourseService();
 
+        // Periksa IPK semester sebelumnya jika semester > 1
+        if (semester > 1) {
+            double previousIPK = courseService.getPreviousSemesterIPK(studentNim, semester);
+            if (previousIPK == -1) {
+                // Menampilkan dialog jika IPK semester sebelumnya tidak ditemukan
+                JOptionPane.showMessageDialog(this, "You cannot enroll for this semester because there is no GPA for the previous semester.", "Error", JOptionPane.ERROR_MESSAGE);
+
+                // Nonaktifkan fungsi edit
+                disableEditing();
+                return; // Keluar dari fungsi jika tidak valid
+            }
+        }
+
         // Mendapatkan status pendaftaran mahasiswa untuk semester yang dipilih
         String enrollmentStatus = courseService.getEnrollmentStatus(studentNim, semester);
 
@@ -81,24 +94,20 @@ public class CoursePlanner extends javax.swing.JFrame {
 
         // Menangani status pendaftaran dan memperbarui izin pengeditan berdasarkan status tersebut
         if (null == enrollmentStatus) {
-            // Mengizinkan pengeditan jika status pendaftaran tidak ditemukan
-            enableEditing();
+            enableEditing(); // Mengizinkan pengeditan jika status pendaftaran tidak ditemukan
         } else {
             switch (enrollmentStatus) {
                 case "Pending" -> {
-                    // Menampilkan pesan bahwa pendaftaran sedang dalam proses
                     JOptionPane.showMessageDialog(this, "Your enrollment is pending. You cannot modify it at this time.");
                     disableEditing(); // Menonaktifkan pengeditan
                 }
                 case "Accepted" -> {
-                    // Menampilkan pesan bahwa pendaftaran telah diterima
                     JOptionPane.showMessageDialog(this, "Your enrollment has been accepted. You cannot modify it.");
                     disableEditing(); // Menonaktifkan pengeditan
                 }
                 case "Rejected" -> {
-                    // Menampilkan pesan bahwa pendaftaran ditolak dan mengizinkan pengeditan
                     JOptionPane.showMessageDialog(this, "Your enrollment was rejected. Please review and resubmit your enrollment.", "Rejected", JOptionPane.ERROR_MESSAGE);
-                    enableEditing();
+                    enableEditing(); // Mengizinkan pengeditan jika pendaftaran ditolak
                 }
                 default ->
                     enableEditing();
@@ -140,8 +149,36 @@ public class CoursePlanner extends javax.swing.JFrame {
             totalCredits += (int) row[2]; // Menambahkan jumlah SKS
         }
 
-        // Memperbarui label untuk menampilkan total SKS
-        jLabel1.setText("Total Credits: " + totalCredits + " (Min : 16 ; Max : 24)");
+        // Dapatkan NIM mahasiswa dan semester
+        String studentNim = getStudentNimFromSession();
+        int semester = semesterComboBox.getSelectedIndex() + 1;
+
+        // Default batas SKS
+        int minSKS = 16;
+        int maxSKS = 24;
+
+        CourseService courseService = new CourseService();
+        double previousIPK = 0.0;
+
+        // Periksa IPK semester sebelumnya, kecuali untuk semester 1
+        if (semester > 1) {
+            previousIPK = courseService.getPreviousSemesterIPK(studentNim, semester);
+            if (previousIPK >= 3.5) {
+                maxSKS = 24; // IPK bagus
+            } else if (previousIPK >= 2.5) {
+                maxSKS = 20; // IPK sedang
+            } else if (previousIPK >= 2.0) {
+                maxSKS = 18; // IPK cukup
+            } else {
+                maxSKS = 16; // IPK rendah
+            }
+        }
+
+        // Format IPK untuk ditampilkan di label (hanya jika semester > 1)
+        String ipkInfo = (semester > 1) ? " | Previous GPA: " + String.format("%.2f", previousIPK) : "";
+
+// Perbarui label untuk menampilkan informasi total SKS, batas SKS, dan IPK sebelumnya
+        jLabel1.setText("Total Credits: " + totalCredits + " (Min: " + minSKS + " ; Max: " + maxSKS + ")" + ipkInfo);
     }
 
     /**
@@ -467,19 +504,69 @@ public class CoursePlanner extends javax.swing.JFrame {
      * @param evt Event yang dijalankan saat tombol "Save" diklik.
      */
     private void saveButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveButtonActionPerformed
-        // Mengecek apakah total SKS kurang dari batas minimum (16 SKS)
-        if (totalCredits < 16) {
-            JOptionPane.showMessageDialog(this, "Total credits must be at least 16!");
-            return;
-        }
-
         // Mendapatkan semester yang dipilih dari ComboBox
         int semester = semesterComboBox.getSelectedIndex() + 1;
 
         // Mendapatkan NIM mahasiswa dari sesi
         String studentNim = getStudentNimFromSession();
 
-        // Mengambil data mata kuliah dari tabel "Mata Kuliah Diambil"
+        // Jika mahasiswa berada di semester 1, langsung lewati validasi IPK
+        if (semester == 1) {
+            // Validasi minimal dan maksimal SKS default untuk semester 1
+            int minSKS = 12; // Batas minimum SKS untuk mahasiswa semester 1
+            int maxSKS = 24; // Batas maksimum SKS untuk mahasiswa semester 1
+
+            // Validasi minimum SKS
+            if (totalCredits < minSKS) {
+                JOptionPane.showMessageDialog(this, "You must enroll in at least " + minSKS + " credits in your first semester.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Validasi maksimum SKS
+            if (totalCredits > maxSKS) {
+                JOptionPane.showMessageDialog(this, "You can only enroll for a maximum of " + maxSKS + " credits in your first semester.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        } else {
+            // **Validasi IPK semester sebelumnya**
+            CourseService courseService = new CourseService();
+            double previousIPK = courseService.getPreviousSemesterIPK(studentNim, semester);
+            if (previousIPK == -1) {
+                JOptionPane.showMessageDialog(this, "You cannot enroll without a valid GPA from the previous semester.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Menentukan minimum dan maksimum SKS berdasarkan IPK
+            int minSKS = 0;
+            int maxSKS = 0;
+            if (previousIPK >= 3.5) {
+                minSKS = 16;
+                maxSKS = 24; // IPK sangat baik
+            } else if (previousIPK >= 2.5) {
+                minSKS = 12;
+                maxSKS = 20; // IPK baik
+            } else if (previousIPK >= 2.0) {
+                minSKS = 12;
+                maxSKS = 18; // IPK cukup
+            } else {
+                minSKS = 9;
+                maxSKS = 15; // IPK rendah
+            }
+
+            // Validasi minimum SKS
+            if (totalCredits < minSKS) {
+                JOptionPane.showMessageDialog(this, "You must enroll in at least " + minSKS + " credits based on your GPA.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Validasi maksimum SKS
+            if (totalCredits > maxSKS) {
+                JOptionPane.showMessageDialog(this, "You can only enroll for a maximum of " + maxSKS + " credits based on your GPA.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+
+        // Mendapatkan data mata kuliah yang dipilih
         List<Object[]> data = getTableData(jTable2);
 
         // Menyimpan kode mata kuliah dalam daftar (List)
@@ -543,7 +630,8 @@ public class CoursePlanner extends javax.swing.JFrame {
 
     /**
      * Digunakan untuk memilih semester.
-     * @param evt 
+     *
+     * @param evt
      */
     private void semesterComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_semesterComboBoxActionPerformed
         int semester = semesterComboBox.getSelectedIndex() + 1;

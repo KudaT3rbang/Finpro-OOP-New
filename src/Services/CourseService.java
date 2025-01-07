@@ -12,6 +12,32 @@ import java.util.List;
 public class CourseService {
 
     /**
+     * Mendapatkan IPK mahasiswa pada semester tertentu.
+     *
+     * @param studentNim NIM mahasiswa.
+     * @param semester Semester yang ingin dicek (semester saat ini - 1).
+     * @return IPK semester sebelumnya, atau -1 jika tidak ditemukan.
+     */
+    public double getPreviousSemesterIPK(String studentNim, int semester) {
+        if (semester <= 1) {
+            return -1; // Semester 1 tidak memiliki semester sebelumnya
+        }
+
+        String query = "SELECT ipk FROM student_ipk WHERE student_nim = ? AND semester = ?";
+        try (Connection connection = DatabaseConnection.connect(); PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, studentNim);
+            stmt.setInt(2, semester - 1); // Semester sebelumnya
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("ipk");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1; // Tidak ditemukan
+    }
+
+    /**
      * Mendapatkan daftar mata kuliah yang tersedia untuk mahasiswa berdasarkan
      * NIM. Mata kuliah yang telah diambil mahasiswa tidak akan ditampilkan.
      *
@@ -122,22 +148,47 @@ public class CourseService {
                 throw new SQLException("Failed to establish database connection.");
             }
 
-            connection.setAutoCommit(false);
+            connection.setAutoCommit(false); // Memulai transaksi
 
-            // Pastikan data pendaftaran mahasiswa ada atau perbarui statusnya
+            // 1. Cek IPK semester sebelumnya
+            double previousIPK = getPreviousSemesterIPK(studentNim, semester);
+            if (semester > 1 && previousIPK == -1) { // Validasi IPK hanya jika bukan semester 1
+                throw new SQLException("Student cannot enroll without a valid GPA from the previous semester.");
+            }
+
+            // 2. Tentukan batas SKS berdasarkan IPK
+            int maxSKS = (semester == 1) ? 24 : (previousIPK >= 3.5 ? 24 : previousIPK >= 2.5 ? 20 : previousIPK >= 2.0 ? 18 : 15);
+
+            // 3. Hitung total SKS dari mata kuliah yang dipilih
+            int totalSKS = 0;
+            String courseQuery = "SELECT credit_hours FROM course WHERE code_course = ?";
+            try (PreparedStatement courseStmt = connection.prepareStatement(courseQuery)) {
+                for (String codeCourse : courseCodes) {
+                    courseStmt.setString(1, codeCourse);
+                    ResultSet rs = courseStmt.executeQuery();
+                    if (rs.next()) {
+                        totalSKS += rs.getInt("credit_hours");
+                    }
+                }
+            }
+            if (totalSKS > maxSKS) {
+                throw new SQLException("Student exceeds the maximum allowed credits (" + maxSKS + " SKS) for their GPA.");
+            }
+
+            // 4. Pastikan data pendaftaran mahasiswa ada atau perbarui statusnya
             String ensureEnrollmentQuery = """
             INSERT INTO enrollment (student_nim, semester, status)
             VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE status = VALUES(status)
-            """;
+        """;
             try (PreparedStatement ensureStmt = connection.prepareStatement(ensureEnrollmentQuery)) {
                 ensureStmt.setString(1, studentNim);
                 ensureStmt.setInt(2, semester);
                 ensureStmt.setString(3, status);
-                ensureStmt.executeUpdate(); // Menyimpan data pendaftaran
+                ensureStmt.executeUpdate();
             }
 
-            // Ambil ID pendaftaran
+            // 5. Ambil ID pendaftaran
             String getEnrollmentIdQuery = "SELECT id FROM enrollment WHERE student_nim = ? AND semester = ?";
             int enrollmentId;
             try (PreparedStatement enrollmentStmt = connection.prepareStatement(getEnrollmentIdQuery)) {
@@ -145,20 +196,20 @@ public class CourseService {
                 enrollmentStmt.setInt(2, semester);
                 ResultSet resultSet = enrollmentStmt.executeQuery();
                 if (resultSet.next()) {
-                    enrollmentId = resultSet.getInt("id"); // Mengambil ID pendaftaran
+                    enrollmentId = resultSet.getInt("id");
                 } else {
                     throw new SQLException("Failed to retrieve enrollment ID for student: " + studentNim + ", semester: " + semester);
                 }
             }
 
-            // Hapus mata kuliah yang sudah ada
+            // 6. Hapus mata kuliah yang sudah ada
             String deleteQuery = "DELETE FROM enrollment_course WHERE enrollment_id = ?";
             try (PreparedStatement deleteStmt = connection.prepareStatement(deleteQuery)) {
                 deleteStmt.setInt(1, enrollmentId);
-                deleteStmt.executeUpdate(); // Menghapus mata kuliah yang sudah ada
+                deleteStmt.executeUpdate();
             }
 
-            // Masukkan mata kuliah baru
+            // 7. Masukkan mata kuliah baru
             String insertQuery = "INSERT INTO enrollment_course (enrollment_id, code_course) VALUES (?, ?)";
             try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
                 for (String codeCourse : courseCodes) {
@@ -169,16 +220,10 @@ public class CourseService {
                 insertStmt.executeBatch();
             }
 
-            connection.commit(); // Commit transaction
+            connection.commit(); // Commit transaksi
+
         } catch (SQLException e) {
-            e.printStackTrace();
-            try (Connection connection = DatabaseConnection.connect()) {
-                if (connection != null) {
-                    connection.rollback();
-                }
-            } catch (SQLException rollbackEx) {
-                rollbackEx.printStackTrace();
-            }
+            e.printStackTrace(); // Menangani error dengan mencetak stack trace
         }
     }
 }

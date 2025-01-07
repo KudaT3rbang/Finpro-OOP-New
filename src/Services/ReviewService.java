@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Kelas EnrollmentService menyediakan layanan untuk menangani data pendaftaran
- * mahasiswa, termasuk mendapatkan daftar mahasiswa yang pendaftarannya perlu
- * ditinjau, detail pendaftaran, dan memperbarui status pendaftaran.
+ * Kelas ReviewService menyediakan layanan untuk menangani data pendaftaran
+ mahasiswa, termasuk mendapatkan daftar mahasiswa yang pendaftarannya perlu
+ ditinjau, detail pendaftaran, dan memperbarui status pendaftaran.
  */
-public class EnrollmentService {
+public class ReviewService {
 
     /**
      * Mengambil daftar mahasiswa dengan status pendaftaran "Pending".
